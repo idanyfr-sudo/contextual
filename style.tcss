@@ -1,0 +1,31 @@
+Screen {
+    align: center middle;
+    background: $surface;
+    color: $text;
+}
+
+#log {
+    width: 60%;
+    height: 12;
+    border: round purple;
+    background: $boost;
+    padding: 0 1;
+    scrollbar-size: 0 0;
+}
+#input {
+    width: 60%;
+    height: 3;
+    border: round purple;
+    background: $boost;
+}
+
+#input:focus {
+    border: round $accent;
+}
+
+#InputPath{
+    width: 60%;
+    border: round purple;
+    height: 3;
+    background: $boost;
+}
