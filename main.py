@@ -6,7 +6,10 @@ import psycopg2
 from psycopg2.extras import execute_values
 import os
 
-client = OpenAI()
+
+
+client =  OpenAI()
+model=SentenceTransformer("all-MiniLM-L6-v2")  
 
 splitter = RecursiveCharacterTextSplitter(
     chunk_size=100, 
@@ -14,7 +17,7 @@ splitter = RecursiveCharacterTextSplitter(
 )
 CONNECTION_STRING = os.getenv("CONNECTION_STRING")
 
-model = SentenceTransformer('all-MiniLM-L6-v2')
+
 
 conn = psycopg2.connect(CONNECTION_STRING)
 
@@ -36,10 +39,12 @@ def create_table():
     
 
 def vector_text(chunks):
+    
     embeddings = model.encode(chunks)
     return embeddings.tolist()
 
 def similiar_search(question: str) -> str:
+    
     if not question:
         raise ValueError("No value was entered")
 
@@ -70,8 +75,7 @@ def similiar_search(question: str) -> str:
 
     return response.output_text
 
-
-def load_file(path: str)->None:
+def process_file(path: str)->None:
 
     reader = PdfReader(path)
     pages = []
