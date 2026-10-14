@@ -2,6 +2,7 @@ Screen {
     align: center middle;
     background: $surface;
     color: $text;
+    width: 50%;
 }
 
 #log {
@@ -9,8 +10,10 @@ Screen {
     height: 12;
     border: round purple;
     background: $boost;
-    padding: 0 1;
     scrollbar-size: 0 0;
+    text-overflow: fold;
+    text-wrap: wrap;
+    text-style: italic;
 }
 #input {
     width: 60%;
