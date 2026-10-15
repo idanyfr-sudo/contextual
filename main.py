@@ -1,14 +1,17 @@
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from sentence_transformers import SentenceTransformer
 from pypdf import PdfReader
-from openai import OpenAI
+from groq import Groq
 import psycopg2
 from psycopg2.extras import execute_values
 import os
 
 
 
-client =  OpenAI()
+client =  Groq(
+    api_key=os.environ.get("GROK_KEY")
+    )
+
 model=SentenceTransformer("all-MiniLM-L6-v2")  
 
 splitter = RecursiveCharacterTextSplitter(
@@ -17,9 +20,11 @@ splitter = RecursiveCharacterTextSplitter(
 )
 CONNECTION_STRING = os.getenv("CONNECTION_STRING")
 
-
-
 conn = psycopg2.connect(CONNECTION_STRING)
+
+with open("prompt.txt", "r") as file:
+    base_prompt = file.read()
+
 
 def create_table():
     with conn:
@@ -36,7 +41,6 @@ def create_table():
                 embedding vector(384))
                 """
             )
-    
 
 def vector_text(chunks):
     
@@ -52,28 +56,36 @@ def similiar_search(question: str) -> str:
     embedded_question = vector_text(question)
 
     with conn.cursor() as cur: 
-        result = ""                       
+        context = ""                       
         
         cur.execute(
             """
             SELECT chunk FROM vectors 
-            WHERE embedding <=> %s:: vector < 1;
+            WHERE embedding <=> %s:: vector < 0.5
+            LIMIT 5;
             """,
             (embedded_question,)
         )
         
         for chunk in cur.fetchall():
-            result += "\n" + chunk[0]
+            context += "\n" + chunk[0]
     
-    response = client.responses.create(
-            model="gpt-5.4",
-            input=f"""
-            answer this {question} and only use this {result}
-            to formulate an answer.
-            """,
+    prompt = base_prompt.format(
+        question = question,
+        context = context
+    )
+    
+    response = client.chat.completions.create(
+        messages=[
+            {
+                "role": "user",
+                "content":prompt,
+            }
+        ],
+        model="openai/gpt-oss-120b",
     )
 
-    return response.output_text
+    return response.choices[0].message.content
 
 def process_file(path: str)->None:
 
