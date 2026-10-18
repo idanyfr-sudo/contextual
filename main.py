@@ -7,10 +7,9 @@ from psycopg2.extras import execute_values
 import os
 
 
-
 client =  Groq(
     api_key=os.environ.get("GROK_KEY")
-    )
+)
 
 model=SentenceTransformer("all-MiniLM-L6-v2")  
 
@@ -37,15 +36,17 @@ def create_table():
                 """
                 CREATE TABLE IF NOT EXISTS vectors
                 (id BIGSERIAL PRIMARY KEY, 
-                chunk TEXT, 
-                embedding vector(384))
+                chunk TEXT NOT NULL,
+                page_number INT NOT NULL,
+                embedding vector(384) NOT NULL
+                );
                 """
             )
 
 def vector_text(chunks):
-    
     embeddings = model.encode(chunks)
     return embeddings.tolist()
+
 
 def similiar_search(question: str) -> str:
     
@@ -71,8 +72,8 @@ def similiar_search(question: str) -> str:
             context += "\n" + chunk[0]
     
     prompt = base_prompt.format(
-        question = question,
-        context = context
+        context = context,
+        question = question
     )
     
     response = client.chat.completions.create(
@@ -83,30 +84,32 @@ def similiar_search(question: str) -> str:
             }
         ],
         model="openai/gpt-oss-120b",
-    )
 
+    )
     return response.choices[0].message.content
+
 
 def process_file(path: str)->None:
 
     reader = PdfReader(path)
     pages = []
+    list_of_chunks = []
     for page in reader.pages:
         text = page.extract_text(
-            extraction_mode="layout",
-            layout_mode_space_vertically=False,
-        )
-        #removing possible null terminators/SQL won't accept them
-        cleaned_text = text.replace("\0","")   
-        pages.append(cleaned_text)    
-    
-    chunks = splitter.split_text("\n".join(pages))
+                        extraction_mode="layout",
+           layout_mode_space_vertically=False,
+        ).replace("\0","") #removing possible null terminators/SQL won't accept them
+        
+        chunks = splitter.split_text(text)
+        list_of_chunks.extend(chunks)
 
-    embeddings = vector_text(chunks)
-
-    sequences=list(zip(embeddings, chunks))
+        for c in chunks:
+            pages.append(page.page_number)
     
-    stmnt = "INSERT INTO vectors (embedding, chunk) VALUES %s"
+    embeddings = vector_text(list_of_chunks)
+    sequences = (list(zip(embeddings,list_of_chunks, pages)))
+        
+    stmnt = "INSERT INTO vectors (embedding, chunk, page_number) VALUES %s"
     try:
         with conn.cursor() as cur:
             execute_values(cur, stmnt, sequences)
@@ -122,6 +125,14 @@ def process_file(path: str)->None:
 
     return
 
+           
+
+
+
+
+
+
+    
 
 
 
