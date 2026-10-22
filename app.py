@@ -7,10 +7,12 @@ from main import similiar_search, process_file
 class contextualApp(App):
     CSS_PATH = "style.tcss"
 
+    upload_mode = False
+
     def compose(self):
         yield Log(auto_scroll=True, id = "log")
         yield Input(
-            placeholder="Ask contextual",
+            placeholder = "Ask contextual",
             id = "input"    
         )
         yield Button(
@@ -18,21 +20,28 @@ class contextualApp(App):
             variant="primary", 
             id= "Upload"
         )
-   
+        
     def on_button_pressed(self, message: Button.Pressed)->None:
         button = self.query_one("#Upload")
-        button.remove()
+        button.disabled = True
+
+        search_bar = self.query_one("#input")
+        search_bar.placeholder = "File Path"
         
-        self.mount(Input(placeholder = "File path", id ="InputPath"))
-    
+        self.upload_mode = True
+        
     def on_input_submitted(self, event: Input.Submitted)->None:
-        if event.input.id == "input":
+        if not self.upload_mode:
             event.input.clear()
             self.make_question(event.value)
 
         else:
             event.input.clear()
-            self.upload_file(event.value)  
+            self.upload_file(event.value)
+            self.upload_mode = False
+
+            button = self.query_one("#Upload")
+            button.disabled = False
     
     @work(exclusive=True, thread=True)
     def make_question(self,question: str):
@@ -46,12 +55,6 @@ class contextualApp(App):
     def upload_file(self,path: str):
         if path:
             process_file(path)
-
-
-
-        
-
-            
 
 
 
