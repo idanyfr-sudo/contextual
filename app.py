@@ -23,6 +23,12 @@ class contextualApp(App):
     def is_loading(self, id: str, state: bool)-> None:
         widget = self.query_one(f"#{id}")
         widget.loading = state  
+    
+    def update_ui(self, response):
+        text_box = self.query_one("#log")
+        text_box.write(response)
+
+        self.is_loading("input", False)
          
     def on_button_pressed(self, message: Button.Pressed)->None:
         button = self.query_one("#Upload")
@@ -55,22 +61,22 @@ class contextualApp(App):
     def make_question(self, question):
         if question:
             response = similiar_search(question)
-            
-            def update_ui():
-                text_box = self.query_one("#log")
-                text_box.write(response)
-
-                self.is_loading("input", False)
         
-            self.call_from_thread(update_ui)
+            self.call_from_thread(self.update_ui, response)
 
     @work(exclusive=True, thread=True)
     def upload_file(self,path: str):
         if path:
-            process_file(path)
-            self.call_from_thread(self.is_loading, "input", False)
+            try:
+                process_file(path)
+                self.call_from_thread(self.is_loading, "input", False)
+                self.call_from_thread(self.update_ui, "File uploaded")
+
+            except FileNotFoundError as e:
+                self.call_from_thread(self.update_ui, str(e))
 
 
+                
 if __name__ == "__main__":
     app = contextualApp()
 
