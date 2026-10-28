@@ -6,7 +6,6 @@ from main import similiar_search, process_file
 
 class contextualApp(App):
     CSS_PATH = "style.tcss"
-
     upload_mode = False
 
     def compose(self):
@@ -24,11 +23,17 @@ class contextualApp(App):
         widget = self.query_one(f"#{id}")
         widget.loading = state  
     
-    def update_ui(self, response):
-        text_box = self.query_one("#log")
-        text_box.write(response)
+    def update_ui(self, id, content):
+        widget = self.query_one(f'#{id}')
+        if id == "log":
+            widget.write(content)
+            self.is_loading("input", False)
+        else:
+            widget.placeholder = content
 
-        self.is_loading("input", False)
+    def restore(self):
+        pass
+
          
     def on_button_pressed(self, message: Button.Pressed)->None:
         button = self.query_one("#Upload")
@@ -70,13 +75,25 @@ class contextualApp(App):
             try:
                 process_file(path)
                 self.call_from_thread(self.is_loading, "input", False)
-                self.call_from_thread(self.update_ui, "File uploaded")
+                self.call_from_thread(
+                    self.update_ui,
+                    id = "log", 
+                    content="File Uploaded"
+                )
 
             except FileNotFoundError as e:
-                self.call_from_thread(self.update_ui, str(e))
+                self.call_from_thread(
+                    self.update_ui, 
+                    id = "log", 
+                    content = str(e)
+                )
+                self.call_from_thread(
+                    self.update_ui, 
+                    id = "input", 
+                    content = "Ask Contextual"
+                )
 
 
-                
 if __name__ == "__main__":
     app = contextualApp()
 
