@@ -1,5 +1,5 @@
 from textual.app import App
-from textual.widgets import Log, Input, Button
+from textual.widgets import RichLog, Input, Button, Markdown
 from textual import work
 from main import similiar_search, process_file
 from textual.reactive import reactive
@@ -10,24 +10,31 @@ class contextualApp(App):
     upload_mode = reactive(False)
 
     def compose(self):
-        yield Log(auto_scroll=True, id = "log")
+        yield RichLog(
+            id = "log", 
+            markup=True, 
+            wrap=True,
+            highlight=True
+        )
+
         yield Input(
             placeholder = "Ask contextual",
-            id = "input"    
+            id = "input"
         )
         yield Button(
             label="Upload",
             variant="primary", 
             id= "Upload"
         )
+
     def is_loading(self, id: str, state: bool)-> None:
         widget = self.query_one(f"#{id}")
         widget.loading = state  
     
-    def update_chat(self, content):
+    def  update_chat(self, content):
         widget = self.query_one("#log")
-        
         widget.write(content)
+
         self.is_loading("input", False)
     
 
